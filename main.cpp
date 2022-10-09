@@ -5,7 +5,6 @@
 #include "unicorn.h"
 #include "part.h"
 #include "side.h"
-#include "parts.h"
 
 #define WHITE "[47m[30m"
 #define BLACK "[40m[37m"
@@ -98,7 +97,7 @@ std::vector<part> desolve(const int img[32][32], int n) {
             res.push_back(v[i][j]);
         }
     };
-    printWithPimps(v);
+//    printWithPimps(v);
     std::shuffle(res.begin(), res.end(), g);
     return res;
 }
@@ -203,6 +202,10 @@ bool _solve(const int img[32][32], std::vector<part> parts, std::vector<std::vec
             && (y == SIZE - 1 || v[y + 1][x].sides[UP]    == 0 || p.sides[DOWN]  == -v[y + 1][x].sides[UP])) {
             v[y][x] = p;
             counter[y][x]++;
+            for (int j = index + 1; j < SIZE*SIZE; j++) {
+                if (counter[queue[j].first][queue[j].second] == 0) break;
+                counter[queue[j].first][queue[j].second] = 0;
+            }
             std::vector<part> partsWithout = parts;
             partsWithout.erase(partsWithout.begin() + i);
             if (_solve(img, parts, v, index + 1, queue)) {
@@ -213,23 +216,54 @@ bool _solve(const int img[32][32], std::vector<part> parts, std::vector<std::vec
     return false;
 }
 
+
 template<typename F>
-void measureTime(std::ostream &out, F &&lambda) {
+long measureTime(F &&lambda) {
     auto start = std::chrono::high_resolution_clock::now();
     lambda();
     auto stop = std::chrono::high_resolution_clock::now();
-    out << "\n" << (stop - start).count() << "\n";
+    return std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
+}
+
+void generateQueue(std::vector<std::pair<int, int>> &queue, int n) {
+    if (n >= 6) {
+        for (int y = 0; y < SIZE; y+=2) {
+            if (y % 4 == 0) {
+                for (int x = 0; x < SIZE; x+=2) {
+                    queue.emplace_back( y, x );
+                    queue.emplace_back( y, x + 1 );
+                    queue.emplace_back( y + 1, x );
+                    queue.emplace_back( y + 1, x + 1 );
+                }
+            } else {
+                for (int x = SIZE - 2; x >= 0; x-=2) {
+                    queue.emplace_back( y, x + 1 );
+                    queue.emplace_back( y, x );
+                    queue.emplace_back( y + 1, x + 1 );
+                    queue.emplace_back( y + 1, x );
+                }
+            }
+        }
+    } else { //
+        for (int y = 0; y < SIZE; y++) {
+            if (y % 2 == 0) {
+                for (int x = 0; x < SIZE; x++) {
+                    queue.emplace_back( y, x );
+                }
+            } else {
+                for (int x = SIZE - 1; x >= 0; x--) {
+                    queue.emplace_back( y, x );
+                }
+            }
+
+        }
+    }
 }
 
 bool solve(const int img[32][32], const std::vector<part> &allParts, int n) {
     std::vector<std::vector<part>> v(SIZE, std::vector(SIZE, part()));
-//    for (auto i = 0; i < 32; i++) {
     std::vector<std::pair<int, int>> queue;
-    for (int y = 0; y < SIZE; y++) {
-        for (int x = 0; x < SIZE; x++) {
-            queue.emplace_back( y, x );
-        }
-    }
+    generateQueue(queue, n);
 
     std::random_device rd;
     std::mt19937 g(rd());
@@ -237,10 +271,10 @@ bool solve(const int img[32][32], const std::vector<part> &allParts, int n) {
 //    std::shuffle(queue.begin(), queue.end(), g);
     std::reverse(queue.begin(), queue.end());
 
+//    printByColors(v);
     if (_solve(img, allParts, v, 0, queue)) {
         return true;
     };
-//    }
     return false;
 }
 
@@ -252,22 +286,34 @@ int main() {
         throw std::invalid_argument("Неверное количество пимпочек: " + std::to_string(N));
     }
     auto shuffledParts = desolve(UNICORN, N);
-    measureTime(std::cout, [&shuffledParts] {
-        auto p = parts(shuffledParts);
-        int s = 0;
-        for (auto i : p.byUp) {
-            s += i.second.size();
-        }
-        std::cout << "Avg by up: " << (double) s / p.byUp.size() << "\n";
-        s = 0;
-        for (auto i : p.byLeftUp) {
-            s += i.second.size();
-        }
-        std::cout << "Avg by left up: " << (double) s / p.byLeftUp.size() << "\n";
+    long time = measureTime([&shuffledParts, &N] {
+        solve(UNICORN, shuffledParts, N);
     });
+
+//    std::cout << "TEST MODE!\n";
+//    int N = 50;
+//    while (N <= 200) {
+//        long sumTime = 0;
+//        long sum0cnt = 0;
+//        for (int i = 0; i < 15; i++) {
+//            counter = std::vector(SIZE, std::vector<int>(SIZE, 0));
+//            auto shuffledParts = desolve(UNICORN, N);
+//            long time = measureTime([&shuffledParts, &N] {
+//                solve(UNICORN, shuffledParts, N);
+//            });
+//            int cnt = counter[SIZE - 1][SIZE - 1];
+//            sumTime += time;
+//            sum0cnt += cnt;
+//        }
+//        long avgTime = sumTime / 15;
+//        long avgCnt = sum0cnt / 15;
+//        std::cout << N << " : " << avgTime << "ms" << " | " << avgCnt << "\n";
+//        N += 10;
+//    }
 //    return 0;
-    if (solve(UNICORN, shuffledParts, N)) {
-        std::cout << "SOLVED";
-    };
-    return 0;
 }
+
+/*
+ * 35 - 150 by 131s -> avg 150/131 -> max
+ *
+ * */
