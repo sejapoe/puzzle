@@ -3,4 +3,4 @@ project(puzzle)
 
 set(CMAKE_CXX_STANDARD 23)
 
-add_executable(puzzle main.cpp bmp.h unicorn.h part.cpp part.h side.h parts.cpp parts.h)
+add_executable(puzzle main.cpp bmp.h unicorn.h part.cpp part.h)

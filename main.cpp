@@ -4,7 +4,6 @@
 #include <chrono>
 #include "unicorn.h"
 #include "part.h"
-#include "side.h"
 
 #define WHITE "[47m[30m"
 #define BLACK "[40m[37m"
